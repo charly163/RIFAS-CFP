@@ -1,0 +1,120 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rifa 2026</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-block">
+        <img class="brand-logo" src="/logo-umupLA.jpg" alt="Logo CFP 413 U.Mu.Pla.">
+        <div class="brand-copy">
+          <p class="eyebrow">Rifa solidaria</p>
+          <h1>Rifa 2026</h1>
+          <p class="institution">CENTRO DE FORMACION PROFESIONAL 413 UMUPLA</p>
+          <p class="draw-copy">Números disponibles seleccionados. Sortea el 18 de junio por Lotería de la Provincia, jugada nocturna.</p>
+        </div>
+      </div>
+      <div class="summary" aria-label="Resumen de la rifa">
+        <span><strong id="price">$5000</strong><small>cada número</small></span>
+        <span><strong id="availableCount">0</strong><small>disponibles</small></span>
+        <span><strong>18/06</strong><small>sorteo</small></span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="numbers-section">
+        <div class="section-head">
+          <div>
+            <h2>Elegí tus números</h2>
+            <p>Seleccioná uno o varios números disponibles y reservá con tus datos.</p>
+          </div>
+          <div class="legend" aria-label="Referencias">
+            <span><i class="dot available"></i>Disponible</span>
+            <span><i class="dot reserved"></i>Reservado</span>
+            <span><i class="dot sold"></i>Pagado</span>
+          </div>
+        </div>
+        <div id="numberGrid" class="number-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="prizes-section">
+        <div class="section-head compact-head">
+          <div>
+            <h2>Premios</h2>
+            <p>Detalle de premios de la rifa.</p>
+          </div>
+        </div>
+        <ol class="prize-list">
+          <li><strong>1er premio</strong><span>Cocina industrial</span></li>
+          <li><strong>2do premio</strong><span>Parrilla con pala y tizón plegable de dos mallas</span></li>
+          <li><strong>3er premio</strong><span>Parrilla con pala y tizón plegable simple</span></li>
+          <li><strong>4to premio</strong><span>Apoya disco</span></li>
+          <li><strong>5to premio</strong><span>Picada completa para 4 personas</span></li>
+        </ol>
+      </section>
+
+      <aside class="side-panel">
+        <div class="tabs" role="tablist">
+          <button id="buyerTab" class="tab active" type="button">Comprador</button>
+          <button id="adminTab" class="tab" type="button">Admin</button>
+        </div>
+
+        <section id="buyerPanel">
+          <div id="buyerStatus" class="notice muted">Ingresá tus datos para reservar.</div>
+          <form id="buyerForm" class="form">
+            <label>
+              Nombre y apellido
+              <input id="fullName" autocomplete="name" required>
+            </label>
+            <label>
+              DNI
+              <input id="dni" inputmode="numeric" autocomplete="off" required>
+            </label>
+            <label>
+              Teléfono
+              <input id="phone" autocomplete="tel" required>
+            </label>
+            <button type="submit" class="primary">Guardar datos / entrar</button>
+          </form>
+
+          <div class="selection-box">
+            <div>
+              <h3>Selección</h3>
+              <p id="selectedNumbers">Sin números seleccionados.</p>
+            </div>
+            <p id="selectedTotal" class="total">$0</p>
+            <button id="reserveButton" class="primary wide" type="button" disabled>Reservar números</button>
+          </div>
+
+          <div>
+            <h3>Mis reservas</h3>
+            <div id="myReservations" class="reservation-list"></div>
+          </div>
+        </section>
+
+        <section id="adminPanel" class="hidden">
+          <form id="adminForm" class="form compact">
+            <label>
+              Código de administrador
+              <input id="adminCode" type="password" autocomplete="current-password" required>
+            </label>
+            <button type="submit" class="primary">Entrar al panel</button>
+          </form>
+          <div id="adminStatus" class="notice muted">Ingresá el código de administrador.</div>
+          <div class="admin-tools hidden" id="adminTools">
+            <button id="adminReportButton" class="secondary wide" type="button">Descargar listado PDF</button>
+          </div>
+          <div id="adminReservations" class="reservation-list admin"></div>
+        </section>
+      </aside>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+
+
+

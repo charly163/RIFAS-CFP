@@ -1,0 +1,12 @@
+{
+  "name": "rifa-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aplicacion web para gestionar reservas y ventas de una rifa.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
