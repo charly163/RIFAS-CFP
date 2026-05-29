@@ -9,7 +9,18 @@ const CONFIG = {
 
 const SUPABASE_URL = "https://edlubmjtzxowwvbmbjok.supabase.co";
 const SUPABASE_KEY = "sb_publishable_LifpUgGDra4o-oirfkNeWA_ObbeGDKc";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Inicialización segura del cliente de Supabase
+let supabase = null;
+try {
+  if (window.supabase && typeof window.supabase.createClient === 'function') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } else {
+    console.error("El objeto 'supabase' de CDN no está disponible todavía en el ámbito global.");
+  }
+} catch (err) {
+  console.error("Fallo crítico al instanciar el cliente de Supabase:", err);
+}
 
 const state = {
   config: CONFIG,
@@ -354,6 +365,7 @@ function renderAdminReservations() {
 }
 
 async function loadNumbers() {
+  if (!supabase) return;
   try {
     const { data, error } = await supabase
       .from('reservations')
@@ -380,11 +392,12 @@ async function loadNumbers() {
     renderSelection();
   } catch (error) {
     console.error("Error al cargar números:", error);
+    setNotice(els.buyerStatus, "Error de base de datos. Asegúrate de haber ejecutado el script SQL en el panel de Supabase.", "bad");
   }
 }
 
 async function loadMe() {
-  if (!state.buyerToken) return;
+  if (!state.buyerToken || !supabase) return;
   try {
     const { data: buyer, error } = await supabase
       .from('buyers')
@@ -423,9 +436,8 @@ async function loadMe() {
 }
 
 async function loadAdmin() {
-  if (!state.adminCode) return;
+  if (!state.adminCode || !supabase) return;
   try {
-    // Validar el acceso obteniendo las reservas a través de un join normal
     const { data: resData, error } = await supabase
       .from('reservations')
       .select('*, buyers(*)')
@@ -435,7 +447,6 @@ async function loadAdmin() {
 
     state.adminReservations = (resData || []).map(mapReservation);
 
-    // Sincronizar el estado de los números basado en el listado de reservas
     const occupied = {};
     state.adminReservations.forEach(res => {
       if (res.status !== 'cancelled') {
@@ -456,11 +467,12 @@ async function loadAdmin() {
     renderAdminReservations();
   } catch (error) {
     els.adminTools.classList.add("hidden");
-    setNotice(els.adminStatus, "Acceso de administración inactivo o código incorrecto.", "bad");
+    setNotice(els.adminStatus, "Acceso de administración inactivo. Verifica tus políticas RLS en Supabase o el código ingresado.", "bad");
   }
 }
 
 async function adminAction(id, action) {
+  if (!supabase) return;
   try {
     const rpcName = {
       confirm: 'admin_confirm_payment',
@@ -500,6 +512,10 @@ els.adminReportButton.addEventListener("click", downloadAdminReport);
 
 els.buyerForm.addEventListener("submit", async event => {
   event.preventDefault();
+  if (!supabase) {
+    alert("La base de datos de Supabase no está lista. Revisa la conectividad en la consola.");
+    return;
+  }
   try {
     const dniClean = els.dni.value.trim().replace(/\D/g, "");
     const fullNameClean = els.fullName.value.trim();
@@ -509,7 +525,6 @@ els.buyerForm.addEventListener("submit", async event => {
       throw new Error("Completa nombre y apellido, DNI y teléfono.");
     }
 
-    // Buscar comprador existente
     const { data: existing, error: sError } = await supabase
       .from('buyers')
       .select('*')
@@ -556,11 +571,14 @@ els.buyerForm.addEventListener("submit", async event => {
 });
 
 els.reserveButton.addEventListener("click", async () => {
+  if (!supabase) {
+    alert("La base de datos de Supabase no está lista.");
+    return;
+  }
   try {
     const selected = [...state.selected];
     if (selected.length === 0) throw new Error("Elegí al menos un número.");
 
-    // Obtener comprador
     const { data: buyer, error: bError } = await supabase
       .from('buyers')
       .select('id')
@@ -569,7 +587,6 @@ els.reserveButton.addEventListener("click", async () => {
 
     if (bError || !buyer) throw new Error("Inicia sesión para reservar.");
 
-    // Evitar colisiones de último momento leyendo reservas activas
     const { data: activeReservations, error: rError } = await supabase
       .from('reservations')
       .select('numbers')
@@ -589,7 +606,6 @@ els.reserveButton.addEventListener("click", async () => {
       throw new Error(`El número ${collision} ya fue reservado recientemente por otra persona.`);
     }
 
-    // Crear la reserva
     const { error: insError } = await supabase
       .from('reservations')
       .insert([{
@@ -620,6 +636,16 @@ els.adminForm.addEventListener("submit", async event => {
 async function init() {
   els.price.textContent = money(state.config.rifa.price);
   els.adminCode.value = state.adminCode;
+  
+  if (!supabase) {
+    setNotice(els.buyerStatus, "Error: No se pudo conectar a la base de datos de Supabase. Asegúrate de ingresar las credenciales correctas en app.js y estar conectado a internet.", "bad");
+    // Inicializar los números como disponibles en el DOM de forma local de respaldo
+    state.numbers = CONFIG.rifa.availableNumbers.map(n => ({ number: n, status: "available" }));
+    renderNumbers();
+    renderSelection();
+    return;
+  }
+  
   await loadNumbers();
   await loadMe();
   renderMyReservations();
