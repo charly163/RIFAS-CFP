@@ -12,14 +12,22 @@ const SUPABASE_KEY = "sb_publishable_LifpUgGDra4o-oirfkNeWA_ObbeGDKc";
 
 // Inicialización segura del cliente de Supabase
 let supabase = null;
-try {
-  if (window.supabase && typeof window.supabase.createClient === 'function') {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  } else {
-    console.error("El objeto 'supabase' de CDN no está disponible todavía en el ámbito global.");
+
+function initSupabase() {
+  try {
+    console.log("Intentando inicializar Supabase...");
+    console.log("window.supabase disponible:", !!window.supabase);
+    console.log("window.supabase.createClient disponible:", !!(window.supabase && typeof window.supabase.createClient === 'function'));
+
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      console.log("Supabase inicializado correctamente:", !!supabase);
+    } else {
+      console.error("El objeto 'supabase' de CDN no está disponible todavía en el ámbito global.");
+    }
+  } catch (err) {
+    console.error("Fallo crítico al instanciar el cliente de Supabase:", err);
   }
-} catch (err) {
-  console.error("Fallo crítico al instanciar el cliente de Supabase:", err);
 }
 
 const state = {
@@ -56,6 +64,11 @@ const els = {
   adminReportButton: document.querySelector("#adminReportButton"),
   adminReservations: document.querySelector("#adminReservations")
 };
+
+console.log("Elementos DOM:", els);
+console.log("buyerTab:", els.buyerTab);
+console.log("adminTab:", els.adminTab);
+console.log("grid:", els.grid);
 
 function generateUUID() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -506,10 +519,6 @@ function switchTab(tab) {
   if (admin) loadAdmin();
 }
 
-els.buyerTab.addEventListener("click", () => switchTab("buyer"));
-els.adminTab.addEventListener("click", () => switchTab("admin"));
-els.adminReportButton.addEventListener("click", downloadAdminReport);
-
 els.buyerForm.addEventListener("submit", async event => {
   event.preventDefault();
   if (!supabase) {
@@ -633,10 +642,17 @@ els.adminForm.addEventListener("submit", async event => {
   await loadAdmin();
 });
 
+els.buyerTab.addEventListener("click", () => switchTab("buyer"));
+els.adminTab.addEventListener("click", () => switchTab("admin"));
+els.adminReportButton.addEventListener("click", downloadAdminReport);
+
 async function init() {
+  console.log("Iniciando aplicación...");
   els.price.textContent = money(state.config.rifa.price);
   els.adminCode.value = state.adminCode;
-  
+
+  initSupabase();
+
   if (!supabase) {
     setNotice(els.buyerStatus, "Error: No se pudo conectar a la base de datos de Supabase. Asegúrate de ingresar las credenciales correctas en app.js y estar conectado a internet.", "bad");
     // Inicializar los números como disponibles en el DOM de forma local de respaldo
@@ -645,12 +661,16 @@ async function init() {
     renderSelection();
     return;
   }
-  
+
   await loadNumbers();
   await loadMe();
   renderMyReservations();
 }
 
-init().catch(error => {
-  document.body.innerHTML = `<main class="layout"><p class="notice bad">${error.message}</p></main>`;
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM cargado");
+  init().catch(error => {
+    console.error("Error al iniciar:", error);
+    document.body.innerHTML = `<main class="layout"><p class="notice bad">${error.message}</p></main>`;
+  });
 });
