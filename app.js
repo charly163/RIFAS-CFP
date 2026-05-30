@@ -11,7 +11,7 @@ const SUPABASE_URL = "https://edlubmjtzxowwvbmbjok.supabase.co";
 const SUPABASE_KEY = "sb_publishable_LifpUgGDra4o-oirfkNeWA_ObbeGDKc";
 
 // Inicialización segura del cliente de Supabase
-let supabase = null;
+let supabaseClient = null;
 
 function initSupabase() {
   try {
@@ -20,8 +20,8 @@ function initSupabase() {
     console.log("window.supabase.createClient disponible:", !!(window.supabase && typeof window.supabase.createClient === 'function'));
 
     if (window.supabase && typeof window.supabase.createClient === 'function') {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log("Supabase inicializado correctamente:", !!supabase);
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      console.log("Supabase inicializado correctamente:", !!supabaseClient);
     } else {
       console.error("El objeto 'supabase' de CDN no está disponible todavía en el ámbito global.");
     }
@@ -378,9 +378,9 @@ function renderAdminReservations() {
 }
 
 async function loadNumbers() {
-  if (!supabase) return;
+  if (!supabaseClient) return;
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('reservations')
       .select('numbers, status')
       .neq('status', 'cancelled');
@@ -410,9 +410,9 @@ async function loadNumbers() {
 }
 
 async function loadMe() {
-  if (!state.buyerToken || !supabase) return;
+  if (!state.buyerToken || !supabaseClient) return;
   try {
-    const { data: buyer, error } = await supabase
+    const { data: buyer, error } = await supabaseClient
       .from('buyers')
       .select('*')
       .eq('token', state.buyerToken)
@@ -430,7 +430,7 @@ async function loadMe() {
     els.dni.value = buyer.dni;
     els.phone.value = buyer.phone;
 
-    const { data: resData, error: rError } = await supabase
+    const { data: resData, error: rError } = await supabaseClient
       .from('reservations')
       .select('*, buyers(*)')
       .eq('buyer_id', buyer.id)
@@ -449,9 +449,9 @@ async function loadMe() {
 }
 
 async function loadAdmin() {
-  if (!state.adminCode || !supabase) return;
+  if (!state.adminCode || !supabaseClient) return;
   try {
-    const { data: resData, error } = await supabase
+    const { data: resData, error } = await supabaseClient
       .from('reservations')
       .select('*, buyers(*)')
       .order('created_at', { ascending: false });
@@ -485,7 +485,7 @@ async function loadAdmin() {
 }
 
 async function adminAction(id, action) {
-  if (!supabase) return;
+  if (!supabaseClient) return;
   try {
     const rpcName = {
       confirm: 'admin_confirm_payment',
@@ -496,7 +496,7 @@ async function adminAction(id, action) {
 
     if (!rpcName) throw new Error("Acción administrativa no válida.");
 
-    const { data, error } = await supabase.rpc(rpcName, {
+    const { data, error } = await supabaseClient.rpc(rpcName, {
       p_reservation_id: id,
       p_admin_code: state.adminCode
     });
@@ -521,7 +521,7 @@ function switchTab(tab) {
 
 els.buyerForm.addEventListener("submit", async event => {
   event.preventDefault();
-  if (!supabase) {
+  if (!supabaseClient) {
     alert("La base de datos de Supabase no está lista. Revisa la conectividad en la consola.");
     return;
   }
@@ -534,7 +534,7 @@ els.buyerForm.addEventListener("submit", async event => {
       throw new Error("Completa nombre y apellido, DNI y teléfono.");
     }
 
-    const { data: existing, error: sError } = await supabase
+    const { data: existing, error: sError } = await supabaseClient
       .from('buyers')
       .select('*')
       .eq('dni', dniClean)
@@ -544,7 +544,7 @@ els.buyerForm.addEventListener("submit", async event => {
 
     let token = "";
     if (existing) {
-      const { data: updated, error: uError } = await supabase
+      const { data: updated, error: uError } = await supabaseClient
         .from('buyers')
         .update({ full_name: fullNameClean, phone: phoneClean })
         .eq('id', existing.id)
@@ -555,7 +555,7 @@ els.buyerForm.addEventListener("submit", async event => {
       token = updated.token;
     } else {
       const newToken = generateUUID();
-      const { data: inserted, error: iError } = await supabase
+      const { data: inserted, error: iError } = await supabaseClient
         .from('buyers')
         .insert([{
           full_name: fullNameClean,
@@ -580,7 +580,7 @@ els.buyerForm.addEventListener("submit", async event => {
 });
 
 els.reserveButton.addEventListener("click", async () => {
-  if (!supabase) {
+  if (!supabaseClient) {
     alert("La base de datos de Supabase no está lista.");
     return;
   }
@@ -588,7 +588,7 @@ els.reserveButton.addEventListener("click", async () => {
     const selected = [...state.selected];
     if (selected.length === 0) throw new Error("Elegí al menos un número.");
 
-    const { data: buyer, error: bError } = await supabase
+    const { data: buyer, error: bError } = await supabaseClient
       .from('buyers')
       .select('id')
       .eq('token', state.buyerToken)
@@ -596,7 +596,7 @@ els.reserveButton.addEventListener("click", async () => {
 
     if (bError || !buyer) throw new Error("Inicia sesión para reservar.");
 
-    const { data: activeReservations, error: rError } = await supabase
+    const { data: activeReservations, error: rError } = await supabaseClient
       .from('reservations')
       .select('numbers')
       .neq('status', 'cancelled');
@@ -615,7 +615,7 @@ els.reserveButton.addEventListener("click", async () => {
       throw new Error(`El número ${collision} ya fue reservado recientemente por otra persona.`);
     }
 
-    const { error: insError } = await supabase
+    const { error: insError } = await supabaseClient
       .from('reservations')
       .insert([{
         buyer_id: buyer.id,
@@ -653,7 +653,7 @@ async function init() {
 
   initSupabase();
 
-  if (!supabase) {
+  if (!supabaseClient) {
     setNotice(els.buyerStatus, "Error: No se pudo conectar a la base de datos de Supabase. Asegúrate de ingresar las credenciales correctas en app.js y estar conectado a internet.", "bad");
     // Inicializar los números como disponibles en el DOM de forma local de respaldo
     state.numbers = CONFIG.rifa.availableNumbers.map(n => ({ number: n, status: "available" }));
