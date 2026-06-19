@@ -107,6 +107,16 @@
           </form>
           <div id="adminStatus" class="notice muted">Ingresá el código de administrador.</div>
           <div class="admin-tools hidden" id="adminTools">
+            <div class="manage-numbers">
+              <h3>Agregar números a la rifa</h3>
+              <form id="adminNumbersForm" class="form compact" style="margin-bottom: 1rem;">
+                <label>
+                  Rangos (ej. 1-100, 150)
+                  <input id="adminNumbersInput" type="text" placeholder="1-50, 100, 200-250" required>
+                </label>
+                <button type="submit" class="primary wide">Agregar números</button>
+              </form>
+            </div>
             <button id="adminReportButton" class="secondary wide" type="button">Descargar listado PDF</button>
           </div>
           <div id="adminReservations" class="reservation-list admin"></div>

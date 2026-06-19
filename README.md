@@ -79,7 +79,39 @@ create policy "Permitir lectura pública de reservas" on reservations
 create policy "Permitir inserción pública de reservas" on reservations
   for insert with check (true);
 
--- 6. Crear funciones de base de datos seguras (RPC) para administración
+-- 6. Crear tabla de números de la rifa y políticas RLS
+create table if not exists raffle_numbers (
+  number integer primary key
+);
+
+alter table raffle_numbers enable row level security;
+
+create policy "Permitir lectura pública de números" on raffle_numbers
+  for select using (true);
+
+-- 7. Crear funciones de base de datos seguras (RPC) para administración
+
+-- Función: Agregar números a la rifa masivamente
+create or replace function admin_add_numbers(p_numbers integer[], p_admin_code text)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  num integer;
+begin
+  if p_admin_code != 'rifa2026' then
+    raise exception 'Código de administrador incorrecto.';
+  end if;
+  
+  foreach num in array p_numbers
+  loop
+    insert into raffle_numbers (number) values (num) on conflict do nothing;
+  end loop;
+  
+  return jsonb_build_object('success', true);
+end;
+$$;
 
 -- Función: Confirmar Pago
 create or replace function admin_confirm_payment(p_reservation_id uuid, p_admin_code text)

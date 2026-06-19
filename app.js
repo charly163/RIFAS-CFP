@@ -61,6 +61,8 @@ const els = {
   adminCode: document.querySelector("#adminCode"),
   adminStatus: document.querySelector("#adminStatus"),
   adminTools: document.querySelector("#adminTools"),
+  adminNumbersForm: document.querySelector("#adminNumbersForm"),
+  adminNumbersInput: document.querySelector("#adminNumbersInput"),
   adminReportButton: document.querySelector("#adminReportButton"),
   adminReservations: document.querySelector("#adminReservations")
 };
@@ -380,6 +382,16 @@ function renderAdminReservations() {
 async function loadNumbers() {
   if (!supabaseClient) return;
   try {
+    const { data: numbersData, error: nError } = await supabaseClient
+      .from('raffle_numbers')
+      .select('number');
+
+    let availableNums = CONFIG.rifa.availableNumbers;
+    if (!nError && numbersData && numbersData.length > 0) {
+      availableNums = numbersData.map(n => n.number);
+      CONFIG.rifa.availableNumbers = availableNums;
+    }
+
     const { data, error } = await supabaseClient
       .from('reservations')
       .select('numbers, status')
@@ -645,6 +657,57 @@ els.adminForm.addEventListener("submit", async event => {
 els.buyerTab.addEventListener("click", () => switchTab("buyer"));
 els.adminTab.addEventListener("click", () => switchTab("admin"));
 els.adminReportButton.addEventListener("click", downloadAdminReport);
+
+function parseNumberRanges(input) {
+  const parts = input.split(',');
+  const result = new Set();
+  for (const part of parts) {
+    const range = part.trim();
+    if (!range) continue;
+    if (range.includes('-')) {
+      const [startStr, endStr] = range.split('-');
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      if (!isNaN(start) && !isNaN(end)) {
+        const min = Math.min(start, end);
+        const max = Math.max(start, end);
+        for (let i = min; i <= max; i++) {
+          result.add(i);
+        }
+      }
+    } else {
+      const num = parseInt(range, 10);
+      if (!isNaN(num)) result.add(num);
+    }
+  }
+  return Array.from(result).sort((a, b) => a - b);
+}
+
+if (els.adminNumbersForm) {
+  els.adminNumbersForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!supabaseClient) return;
+    try {
+      const input = els.adminNumbersInput.value;
+      const numbersArray = parseNumberRanges(input);
+      if (numbersArray.length === 0) throw new Error("No se detectaron números válidos.");
+      
+      const { error } = await supabaseClient.rpc('admin_add_numbers', {
+        p_numbers: numbersArray,
+        p_admin_code: state.adminCode
+      });
+      
+      if (error) throw error;
+      
+      els.adminNumbersInput.value = "";
+      alert(`Se agregaron ${numbersArray.length} números con éxito.`);
+      await loadNumbers();
+      await loadAdmin();
+    } catch (error) {
+      alert("Error al agregar números: " + (error.message || "Error desconocido."));
+    }
+  });
+}
 
 async function init() {
   console.log("Iniciando aplicación...");
