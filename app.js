@@ -3,7 +3,22 @@ const CONFIG = {
     availableNumbers: [931, 933, 934, 936, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949, 980, 981, 982, 983, 984, 986],
     price: 5000,
     drawDate: "18 de junio",
-    drawInfo: "Loteria de la Provincia - jugada nocturna"
+    drawDateShort: "18/06",
+    drawInfo: "Loteria de la Provincia - jugada nocturna",
+    header: {
+      logoSrc: "logo-umupLA.jpg",
+      eyebrow: "Rifa solidaria",
+      title: "Rifa 2026",
+      institution: "CENTRO DE FORMACION PROFESIONAL 413 UMUPLA",
+      drawCopy: "Números disponibles seleccionados. Sortea el 18 de junio por Lotería de la Provincia, jugada nocturna."
+    },
+    prizes: [
+      { name: "1er premio", desc: "Cocina industrial" },
+      { name: "2do premio", desc: "Parrilla con pala y tizón plegable de dos mallas" },
+      { name: "3er premio", desc: "Parrilla con pala y tizón plegable simple" },
+      { name: "4to premio", desc: "Apoya disco" },
+      { name: "5to premio", desc: "Picada completa para 4 personas" }
+    ]
   }
 };
 
@@ -66,7 +81,16 @@ const els = {
   adminAddNumbersBtn: document.querySelector("#adminAddNumbersBtn"),
   adminRemoveNumbersBtn: document.querySelector("#adminRemoveNumbersBtn"),
   adminReportButton: document.querySelector("#adminReportButton"),
-  adminReservations: document.querySelector("#adminReservations")
+  adminReservations: document.querySelector("#adminReservations"),
+  
+  // Header Elements
+  brandLogo: document.querySelector("#brandLogo"),
+  brandEyebrow: document.querySelector("#brandEyebrow"),
+  brandTitle: document.querySelector("#brandTitle"),
+  brandInstitution: document.querySelector("#brandInstitution"),
+  brandDrawCopy: document.querySelector("#brandDrawCopy"),
+  drawDateShort: document.querySelector("#drawDateShort"),
+  prizeList: document.querySelector("#prizeList")
 };
 
 console.log("Elementos DOM:", els);
@@ -736,8 +760,27 @@ if (els.adminRemoveNumbersBtn) {
   });
 }
 
+function applyConfig() {
+  if (els.brandLogo) els.brandLogo.src = CONFIG.rifa.header.logoSrc;
+  if (els.brandEyebrow) els.brandEyebrow.textContent = CONFIG.rifa.header.eyebrow;
+  if (els.brandTitle) els.brandTitle.textContent = CONFIG.rifa.header.title;
+  if (els.brandInstitution) els.brandInstitution.textContent = CONFIG.rifa.header.institution;
+  if (els.brandDrawCopy) els.brandDrawCopy.textContent = CONFIG.rifa.header.drawCopy;
+  if (els.drawDateShort) els.drawDateShort.textContent = CONFIG.rifa.drawDateShort;
+  
+  if (els.prizeList) {
+    els.prizeList.innerHTML = "";
+    CONFIG.rifa.prizes.forEach(prize => {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${prize.name}</strong><span>${prize.desc}</span>`;
+      els.prizeList.appendChild(li);
+    });
+  }
+}
+
 async function init() {
   console.log("Iniciando aplicación...");
+  applyConfig();
   els.price.textContent = money(state.config.rifa.price);
   els.adminCode.value = state.adminCode;
 
