@@ -209,6 +209,56 @@ begin
   return jsonb_build_object('success', true);
 end;
 $$;
+
+-- 8. Crear tabla de configuraciones globales
+create table if not exists raffle_settings (
+  id integer primary key default 1,
+  config jsonb not null
+);
+
+alter table raffle_settings enable row level security;
+
+create policy "Permitir lectura pública de configuraciones" on raffle_settings
+  for select using (true);
+
+-- Insertar configuración por defecto
+insert into raffle_settings (id, config) values (1, '{
+  "price": 5000,
+  "drawDate": "18 de junio",
+  "drawDateShort": "18/06",
+  "drawInfo": "Loteria de la Provincia - jugada nocturna",
+  "header": {
+    "logoSrc": "logo-umupLA.jpg",
+    "eyebrow": "Rifa solidaria",
+    "title": "Rifa 2026",
+    "institution": "CENTRO DE FORMACION PROFESIONAL 413 UMUPLA",
+    "drawCopy": "Números disponibles seleccionados. Sortea el 18 de junio por Lotería de la Provincia, jugada nocturna."
+  },
+  "prizes": [
+    { "name": "1er premio", "desc": "Cocina industrial" },
+    { "name": "2do premio", "desc": "Parrilla con pala y tizón plegable de dos mallas" },
+    { "name": "3er premio", "desc": "Parrilla con pala y tizón plegable simple" },
+    { "name": "4to premio", "desc": "Apoya disco" },
+    { "name": "5to premio", "desc": "Picada completa para 4 personas" }
+  ]
+}'::jsonb) on conflict (id) do nothing;
+
+-- Función para actualizar configuraciones
+create or replace function admin_update_settings(p_config jsonb, p_admin_code text)
+returns jsonb
+language plpgsql
+security definer
+as $$
+begin
+  if p_admin_code != 'rifa2026' then
+    raise exception 'Código de administrador incorrecto.';
+  end if;
+  
+  update raffle_settings set config = p_config where id = 1;
+  
+  return jsonb_build_object('success', true);
+end;
+$$;
 ```
 
 5. Presiona el botón **Run** (esquina inferior derecha) para ejecutar el script. Esto dejará tu base de datos configurada y lista con las tablas y la lógica de administración protegida.

@@ -3,7 +3,22 @@ const CONFIG = {
     availableNumbers: [931, 933, 934, 936, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949, 980, 981, 982, 983, 984, 986],
     price: 5000,
     drawDate: "18 de junio",
-    drawInfo: "Loteria de la Provincia - jugada nocturna"
+    drawDateShort: "18/06",
+    drawInfo: "Loteria de la Provincia - jugada nocturna",
+    header: {
+      logoSrc: "logo-umupLA.jpg",
+      eyebrow: "Rifa solidaria",
+      title: "Rifa 2026",
+      institution: "CENTRO DE FORMACION PROFESIONAL 413 UMUPLA",
+      drawCopy: "Números disponibles seleccionados. Sortea el 18 de junio por Lotería de la Provincia, jugada nocturna."
+    },
+    prizes: [
+      { name: "1er premio", desc: "Cocina industrial" },
+      { name: "2do premio", desc: "Parrilla con pala y tizón plegable de dos mallas" },
+      { name: "3er premio", desc: "Parrilla con pala y tizón plegable simple" },
+      { name: "4to premio", desc: "Apoya disco" },
+      { name: "5to premio", desc: "Picada completa para 4 personas" }
+    ]
   }
 };
 
@@ -66,7 +81,30 @@ const els = {
   adminAddNumbersBtn: document.querySelector("#adminAddNumbersBtn"),
   adminRemoveNumbersBtn: document.querySelector("#adminRemoveNumbersBtn"),
   adminReportButton: document.querySelector("#adminReportButton"),
-  adminReservations: document.querySelector("#adminReservations")
+  adminReservations: document.querySelector("#adminReservations"),
+
+  // Settings Admin Form
+  adminSettingsForm: document.querySelector("#adminSettingsForm"),
+  setPrice: document.querySelector("#setPrice"),
+  setDrawDate: document.querySelector("#setDrawDate"),
+  setDrawDateShort: document.querySelector("#setDrawDateShort"),
+  setDrawInfo: document.querySelector("#setDrawInfo"),
+  setLogoSrc: document.querySelector("#setLogoSrc"),
+  setEyebrow: document.querySelector("#setEyebrow"),
+  setTitle: document.querySelector("#setTitle"),
+  setInstitution: document.querySelector("#setInstitution"),
+  setDrawCopy: document.querySelector("#setDrawCopy"),
+  setPrizes: document.querySelector("#setPrizes"),
+  adminSaveSettingsBtn: document.querySelector("#adminSaveSettingsBtn"),
+  
+  // Header Elements
+  brandLogo: document.querySelector("#brandLogo"),
+  brandEyebrow: document.querySelector("#brandEyebrow"),
+  brandTitle: document.querySelector("#brandTitle"),
+  brandInstitution: document.querySelector("#brandInstitution"),
+  brandDrawCopy: document.querySelector("#brandDrawCopy"),
+  drawDateShort: document.querySelector("#drawDateShort"),
+  prizeList: document.querySelector("#prizeList")
 };
 
 console.log("Elementos DOM:", els);
@@ -490,6 +528,24 @@ async function loadAdmin() {
     }));
 
     els.adminTools.classList.remove("hidden");
+    
+    if (els.adminSettingsForm) {
+      els.setPrice.value = CONFIG.rifa.price;
+      els.setDrawDate.value = CONFIG.rifa.drawDate;
+      els.setDrawDateShort.value = CONFIG.rifa.drawDateShort || "18/06";
+      els.setDrawInfo.value = CONFIG.rifa.drawInfo;
+      if (CONFIG.rifa.header) {
+        els.setLogoSrc.value = CONFIG.rifa.header.logoSrc || "";
+        els.setEyebrow.value = CONFIG.rifa.header.eyebrow || "";
+        els.setTitle.value = CONFIG.rifa.header.title || "";
+        els.setInstitution.value = CONFIG.rifa.header.institution || "";
+        els.setDrawCopy.value = CONFIG.rifa.header.drawCopy || "";
+      }
+      if (CONFIG.rifa.prizes) {
+        els.setPrizes.value = CONFIG.rifa.prizes.map(p => `${p.name} | ${p.desc}`).join('\n');
+      }
+    }
+
     setNotice(els.adminStatus, "Panel de administración activo.", "good");
     renderNumbers();
     renderAdminReservations();
@@ -736,12 +792,96 @@ if (els.adminRemoveNumbersBtn) {
   });
 }
 
+function applyConfig() {
+  if (els.brandLogo) els.brandLogo.src = CONFIG.rifa.header.logoSrc;
+  if (els.brandEyebrow) els.brandEyebrow.textContent = CONFIG.rifa.header.eyebrow;
+  if (els.brandTitle) els.brandTitle.textContent = CONFIG.rifa.header.title;
+  if (els.brandInstitution) els.brandInstitution.textContent = CONFIG.rifa.header.institution;
+  if (els.brandDrawCopy) els.brandDrawCopy.textContent = CONFIG.rifa.header.drawCopy;
+  if (els.drawDateShort) els.drawDateShort.textContent = CONFIG.rifa.drawDateShort;
+  
+  if (els.prizeList && CONFIG.rifa.prizes) {
+    els.prizeList.innerHTML = "";
+    CONFIG.rifa.prizes.forEach(prize => {
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${prize.name}</strong><span>${prize.desc}</span>`;
+      els.prizeList.appendChild(li);
+    });
+  }
+}
+
+async function loadSettings() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('raffle_settings')
+      .select('config')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (!error && data && data.config) {
+      CONFIG.rifa = { ...CONFIG.rifa, ...data.config };
+    }
+  } catch (error) {
+    console.error("Error al cargar configuración:", error);
+  }
+  applyConfig();
+}
+
+if (els.adminSettingsForm) {
+  els.adminSettingsForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!supabaseClient) return;
+    
+    try {
+      const prizesLines = els.setPrizes.value.split('\n').filter(l => l.trim() !== '');
+      const prizesArray = prizesLines.map(line => {
+        const parts = line.split('|');
+        return {
+          name: parts[0] ? parts[0].trim() : '',
+          desc: parts[1] ? parts[1].trim() : ''
+        };
+      });
+
+      const newConfig = {
+        price: parseInt(els.setPrice.value, 10),
+        drawDate: els.setDrawDate.value.trim(),
+        drawDateShort: els.setDrawDateShort.value.trim(),
+        drawInfo: els.setDrawInfo.value.trim(),
+        header: {
+          logoSrc: els.setLogoSrc.value.trim(),
+          eyebrow: els.setEyebrow.value.trim(),
+          title: els.setTitle.value.trim(),
+          institution: els.setInstitution.value.trim(),
+          drawCopy: els.setDrawCopy.value.trim()
+        },
+        prizes: prizesArray
+      };
+
+      const { error } = await supabaseClient.rpc('admin_update_settings', {
+        p_config: newConfig,
+        p_admin_code: state.adminCode
+      });
+      
+      if (error) throw error;
+      
+      alert("Configuración actualizada con éxito.");
+      await loadSettings();
+      els.price.textContent = money(state.config.rifa.price);
+    } catch (error) {
+      alert("Error al actualizar configuración: " + (error.message || "Error desconocido."));
+    }
+  });
+}
+
 async function init() {
   console.log("Iniciando aplicación...");
-  els.price.textContent = money(state.config.rifa.price);
   els.adminCode.value = state.adminCode;
 
   initSupabase();
+
+  await loadSettings();
+  els.price.textContent = money(state.config.rifa.price);
 
   if (!supabaseClient) {
     setNotice(els.buyerStatus, "Error: No se pudo conectar a la base de datos de Supabase. Asegúrate de ingresar las credenciales correctas en app.js y estar conectado a internet.", "bad");
