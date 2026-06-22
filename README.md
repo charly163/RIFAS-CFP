@@ -113,6 +113,28 @@ begin
 end;
 $$;
 
+-- Función: Quitar números de la rifa masivamente
+create or replace function admin_remove_numbers(p_numbers integer[], p_admin_code text)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  num integer;
+begin
+  if p_admin_code != 'rifa2026' then
+    raise exception 'Código de administrador incorrecto.';
+  end if;
+  
+  foreach num in array p_numbers
+  loop
+    delete from raffle_numbers where number = num;
+  end loop;
+  
+  return jsonb_build_object('success', true);
+end;
+$$;
+
 -- Función: Confirmar Pago
 create or replace function admin_confirm_payment(p_reservation_id uuid, p_admin_code text)
 returns jsonb

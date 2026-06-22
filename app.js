@@ -63,6 +63,8 @@ const els = {
   adminTools: document.querySelector("#adminTools"),
   adminNumbersForm: document.querySelector("#adminNumbersForm"),
   adminNumbersInput: document.querySelector("#adminNumbersInput"),
+  adminAddNumbersBtn: document.querySelector("#adminAddNumbersBtn"),
+  adminRemoveNumbersBtn: document.querySelector("#adminRemoveNumbersBtn"),
   adminReportButton: document.querySelector("#adminReportButton"),
   adminReservations: document.querySelector("#adminReservations")
 };
@@ -389,6 +391,7 @@ async function loadNumbers() {
     let availableNums = CONFIG.rifa.availableNumbers;
     if (!nError && numbersData && numbersData.length > 0) {
       availableNums = numbersData.map(n => n.number);
+      availableNums.sort((a, b) => a - b);
       CONFIG.rifa.availableNumbers = availableNums;
     }
 
@@ -683,9 +686,8 @@ function parseNumberRanges(input) {
   return Array.from(result).sort((a, b) => a - b);
 }
 
-if (els.adminNumbersForm) {
-  els.adminNumbersForm.addEventListener("submit", async event => {
-    event.preventDefault();
+if (els.adminAddNumbersBtn) {
+  els.adminAddNumbersBtn.addEventListener("click", async () => {
     if (!supabaseClient) return;
     try {
       const input = els.adminNumbersInput.value;
@@ -705,6 +707,31 @@ if (els.adminNumbersForm) {
       await loadAdmin();
     } catch (error) {
       alert("Error al agregar números: " + (error.message || "Error desconocido."));
+    }
+  });
+}
+
+if (els.adminRemoveNumbersBtn) {
+  els.adminRemoveNumbersBtn.addEventListener("click", async () => {
+    if (!supabaseClient) return;
+    try {
+      const input = els.adminNumbersInput.value;
+      const numbersArray = parseNumberRanges(input);
+      if (numbersArray.length === 0) throw new Error("No se detectaron números válidos.");
+      
+      const { error } = await supabaseClient.rpc('admin_remove_numbers', {
+        p_numbers: numbersArray,
+        p_admin_code: state.adminCode
+      });
+      
+      if (error) throw error;
+      
+      els.adminNumbersInput.value = "";
+      alert(`Se quitaron ${numbersArray.length} números con éxito.`);
+      await loadNumbers();
+      await loadAdmin();
+    } catch (error) {
+      alert("Error al quitar números: " + (error.message || "Error desconocido."));
     }
   });
 }
